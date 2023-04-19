@@ -1,0 +1,39 @@
+logsBucket: 'gs://omg-build-logs'
+timeout: 900s
+substitutions:
+  _GO_IMAGE: 'us-docker.pkg.dev/omg-img/ordermygear/go:v1.17.13-1'
+secrets:
+  - kmsKeyName: projects/omg-kms/locations/us-central1/keyRings/omg-cd/cryptoKeys/cloud-build
+    secretEnv:
+      NETRC: CiQAI5tfDoHV6QHqePp9etLi3b3in661AUCyhQSF9biMDaBGfNIS0wEA4SWM1I81idtVaosBHd8PdY4xqb7ZCPafM+p+SIMkT+Pf5scXkqi6FJDNACYnz6vxZqYfPxRZymJ9oaibbiF3rXDZ59EEVZPwPYee1U+6s2L3yJBB5b5mtNz/sJsLCAdCMlo09r6czkBO9ZeOYv+rsw95rBYQ5zhdtTLkwXPFWKx3wRxOngjHVVdMke7wSjlQ35gZWEFR4N2xwy29j7A8uczjwq8wNCdppIsyiz2kBtZDzcjJxAoSQrSSsdbdwOr9kFqZMx5Z2BXL531X3rLqRntC
+
+steps:
+  - id: 'go_vendor'
+    name: '${_GO_IMAGE}'
+    secretEnv: ['NETRC']
+    args: ['/bin/bash', '-c', 'echo "$$NETRC" > ~/.netrc && go mod vendor']
+  - id: 'go_linter'
+    name: '${_GO_IMAGE}'
+    args: ['golangci-lint','run']
+  - id: 'go_compile'
+    name: '${_GO_IMAGE}'
+    args: ['go', 'build', './...']
+  - id: 'go_test'
+    name: '${_GO_IMAGE}'
+    args: ['/bin/bash', '-c', "set -o pipefail && go test ./... -coverprofile=c.out -race | tee package_coverage.txt"]
+  - id: 'go_code_coverage_check'
+    name: '${_GO_IMAGE}'
+    args: ['/bin/bash', '-c', "set -o pipefail && go tool cover -func=c.out | tail -1 | awk '{print $3+0}' > coverage.txt && code_coverage_check | tee total_coverage.txt"]
+  - id: 'code_coverage_tracker'
+    name: 'us-docker.pkg.dev/omg-img/ordermygear/code-coverage:v6-4'
+    args:
+      - 'golang'
+      - '--repo-name=${REPO_NAME}'
+      - '--branch-name=${BRANCH_NAME}'
+      - '--commit-sha=${COMMIT_SHA}'
+      - '--input-coverage=package_coverage.txt'
+      - '--input-coverage=total_coverage.txt'
+      - '--output=code_coverage.jsonl'
+  - id: 'code_coverage_upload'
+    name: 'gcr.io/cloud-builders/gsutil'
+    args: ['cp', 'code_coverage.jsonl', 'gs://omg-build-code-coverage/golang/${REPO_NAME}/${COMMIT_SHA}.jsonl']

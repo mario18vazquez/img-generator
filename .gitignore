@@ -1,0 +1,6 @@
+vendor
+netrc
+.build
+.idea
+c.out
+.multi-platform-build

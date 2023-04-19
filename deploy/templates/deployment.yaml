@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: template-service
+  namespace: "{{ .Values.global.namespace }}"
+  labels:
+    app: template-service
+spec:
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    # strict rolling update. start a new pod then kills 1 old pod
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 0
+  minReadySeconds: 3
+  selector:
+    matchLabels:
+      app: template-service
+      tier: backend
+  template:
+    metadata:
+      labels:
+        app: template-service
+        tier: backend
+    spec:
+      securityContext:
+        runAsUser: 999
+      terminationGracePeriodSeconds: 180
+      containers:
+        - name: template-service
+          image: {{ required "templateService.image is required" .Values.templateService.image | quote }}
+          {{- if .Values.templateService.podResources }}
+          resources:
+            {{ .Values.templateService.podResources | indent 10 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 8080
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "echo waiting for k8s; sleep 5"]
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            failureThreshold: 1
+            initialDelaySeconds: 2
+            timeoutSeconds: 2
+          env:
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /credentials/service_credentials.json
+            - name: TEMPLATE_SERVICE_MYSQL_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: template-service
+                  key: dsn
+          volumeMounts:
+            - name: google-application-credentials
+              mountPath: /credentials
+      volumes:
+        - name: google-application-credentials
+          secret:
+            secretName: template-service
+            items:
+              - key: service_credentials.json
+                path: service_credentials.json

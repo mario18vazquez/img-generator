@@ -1,0 +1,18 @@
+# See https://github.com/golangci/golangci-lint for details on config options
+
+run:
+  tests: false
+  timeout: 3m
+linters-settings:
+  govet:
+    check-shadowing: true
+  errcheck:
+    exclude: .cloudbuild/errcheck.excludes.txt
+linters:
+  enable:
+    - goconst
+    - misspell
+    - unconvert
+  disable:
+    - megacheck
+    - structcheck

@@ -1,0 +1,42 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migration-template-service
+  namespace: "{{ .Values.global.namespace }}"
+  labels:
+    app: template-service
+    tier: migration
+    migration: template-service
+spec:
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        tier: migration
+        migration: template-service
+    spec:
+      securityContext:
+        runAsUser: 999
+      restartPolicy: Never
+      containers:
+        - name: migration-template-service
+          image: {{ required "templateService.image is required" .Values.templateService.image | quote }}
+          command: ["/go/bin/goose"]
+          env:
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /credentials/service_credentials.json
+            - name: GOOSE_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: template-service
+                  key: dsn
+          volumeMounts:
+            - name: google-application-credentials
+              mountPath: /credentials
+      volumes:
+        - name: google-application-credentials
+          secret:
+            secretName: template-service
+            items:
+              - key: service_credentials.json
+                path: service_credentials.json

@@ -1,0 +1,10 @@
+# Default values for the Template Service
+# Any sensible defaults (e.g. values that are the same for all staging envs)
+# SHould go here.
+# In addition, there must be an 'image', 'version', and 'podResources' default empty string 
+# To make the deployment bash script happy
+
+templateService:
+  image: ""
+  version: ""
+  podResources: ""

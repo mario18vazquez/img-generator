@@ -1,0 +1,3 @@
+(*database/sql.Tx).Rollback
+(github.com/OrderMyGear/common-go/model.Transaction).Rollback
+(github.com/go-kit/kit/log.Logger).Log

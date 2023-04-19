@@ -1,0 +1,3 @@
+* @OrderMyGear/backend
+migration*/ @OrderMyGear/db
+/deploy/ @OrderMyGear/sre

@@ -1,0 +1,13 @@
+**/*.env
+**/.*.sw?
+**/docker-compose.yml
+*.out
+*~
+.git/
+.idea/
+.multi-platform-build
+.release
+.vscode/
+dev.sh
+go.work
+vendor
